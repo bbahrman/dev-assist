@@ -9,75 +9,77 @@ let branchName;
 let lintResultsGlobal;
 let formattedResults = [];
 
-module.exports = nodegit.Repository.open(directory).then((repo) => {
-    repositoryObj = repo;
-    let changedFileCount = genChangedFiles(repositoryObj);
-    changedFileCount.then((count) => {
-        if (count > 0) {
-            let commitMessagePromise = getCommitMessage();
-            let commitOId = lintFilesSimple()
-            .then(() => {
-                return guidedCommit();
-            });
-            signature = nodegit.Signature.default(repositoryObj);
-            let branchNamePromise = getBranchName();
-            branchNamePromise.then((name) => {
-               branchName = name;
-            });
-            let fetchStatusPromise = fetchBranches();
-            let parentCommit = repositoryObj.getHeadCommit();
-            Promise.all([
-                commitOId,
-                commitMessagePromise,
-                parentCommit,
-                branchNamePromise,
-                fetchStatusPromise
-            ])
-            .then((results) => {
-                log('Process files and commit promise resolved');
-                // commit changes, last three arguments are OID, commit message, and parent commit
-                let commit = repositoryObj.createCommit('HEAD', signature, signature,  results[3] + ' - ' + results[1], results[0], [results[2]]);
-                let mergePromise = commit.then(() => {
-                    // merge remote branch in
-                    return repositoryObj.mergeBranches(branchName, 'origin/' + branchName, signature);
-                }).catch((err) => {
-                    log('Error in promise block commit, branchname, fetch');
-                    log(err);
-                });
-                let masterMergePromise = mergePromise.then(()=>{
-                    return repositoryObj.mergeBranches(branchName, 'origin/master', signature);
-                });
-
-                let remotePromise = masterMergePromise.then(()=>{
-                    return repositoryObj.getRemote('origin');
-                });
-
-                let pushPromise = remotePromise.then((remote) =>{
-                    return remote.push(["refs/heads/master:refs/heads/master"],{
-                        callbacks: {
-                            credentials: (url, userName) => {
-                                return nodegit.Cred.sshKeyFromAgent(userName);
-                            }
-                        }
+module.exports = function () {
+    nodegit.Repository.open(directory).then((repo) => {
+            repositoryObj = repo;
+            let changedFileCount = genChangedFiles(repositoryObj);
+            changedFileCount.then((count) => {
+                if (count > 0) {
+                    let commitMessagePromise = getCommitMessage();
+                    let commitOId = lintFilesSimple()
+                    .then(() => {
+                        return guidedCommit();
                     });
-                });
-
-                pushPromise.then(()=>{
-                    console.log('\nProcessing complete');
-                    formattedResults.forEach((message) => {
-                        console.log(message);
+                    signature = nodegit.Signature.default(repositoryObj);
+                    let branchNamePromise = getBranchName();
+                    branchNamePromise.then((name) => {
+                        branchName = name;
                     });
-                });
+                    let fetchStatusPromise = fetchBranches();
+                    let parentCommit = repositoryObj.getHeadCommit();
+                    Promise.all([
+                        commitOId,
+                        commitMessagePromise,
+                        parentCommit,
+                        branchNamePromise,
+                        fetchStatusPromise
+                    ])
+                    .then((results) => {
+                        log('Process files and commit promise resolved');
+                        // commit changes, last three arguments are OID, commit message, and parent commit
+                        let commit = repositoryObj.createCommit('HEAD', signature, signature,  results[3] + ' - ' + results[1], results[0], [results[2]]);
+                        let mergePromise = commit.then(() => {
+                            // merge remote branch in
+                            return repositoryObj.mergeBranches(branchName, 'origin/' + branchName, signature);
+                        }).catch((err) => {
+                            log('Error in promise block commit, branchname, fetch');
+                            log(err);
+                        });
+                        let masterMergePromise = mergePromise.then(()=>{
+                            return repositoryObj.mergeBranches(branchName, 'origin/master', signature);
+                        });
 
-            })
-            .catch((err) => {
-                log('Error in promise block, processRules and commitMessagePromise\n' + err)
+                        let remotePromise = masterMergePromise.then(()=>{
+                            return repositoryObj.getRemote('origin');
+                        });
+
+                        let pushPromise = remotePromise.then((remote) =>{
+                            return remote.push(["refs/heads/master:refs/heads/master"],{
+                                callbacks: {
+                                    credentials: (url, userName) => {
+                                        return nodegit.Cred.sshKeyFromAgent(userName);
+                                    }
+                                }
+                            });
+                        });
+
+                        pushPromise.then(()=>{
+                            console.log('\nProcessing complete');
+                            formattedResults.forEach((message) => {
+                                console.log(message);
+                            });
+                        });
+
+                    })
+                    .catch((err) => {
+                        log('Error in promise block, processRules and commitMessagePromise\n' + err)
+                    });
+                } else {
+                    console.log('No changes to commit')
+                }
             });
-        } else {
-            console.log('No changes to commit')
-        }
-    });
-});
+        });
+    };
 
 function getBranchName () {
     return new Promise((resolve, reject) => {
