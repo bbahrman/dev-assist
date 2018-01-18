@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/bbahrman/dev-assist#readme",
   "dependencies": {
+    "eslint": "^4.15.0",
     "nodegit": "^0.20.3"
   }
 }
