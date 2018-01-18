@@ -1,6 +1,7 @@
+#! /usr/local/bin/node
 let nodegit = require('nodegit');
 let fs = require('fs');
-let directory = '/Users/benbahrman/Code_Review';
+let directory = __dirname.replace('/bin', '');
 let signature;
 let repositoryObj;
 let changedFiles;
@@ -9,7 +10,6 @@ let branchName;
 let lintResultsGlobal;
 let formattedResults = [];
 
-module.exports = function () {
     nodegit.Repository.open(directory).then((repo) => {
             repositoryObj = repo;
             let changedFileCount = genChangedFiles(repositoryObj);
@@ -79,7 +79,6 @@ module.exports = function () {
                 }
             });
         });
-    };
 
 function getBranchName () {
     return new Promise((resolve, reject) => {

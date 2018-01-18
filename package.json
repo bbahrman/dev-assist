@@ -14,6 +14,9 @@
     "lint",
     "git"
   ],
+  "bin": {
+    "clean-commit": "bin/lintAndCommit.js"
+  },
   "author": "Ben Bahrman <ben@bahrman.org>",
   "license": "MIT",
   "bugs": {
