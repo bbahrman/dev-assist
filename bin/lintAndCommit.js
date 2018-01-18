@@ -2,6 +2,7 @@
 let nodegit = require('nodegit');
 let fs = require('fs');
 let directory = __dirname.replace('/bin', '');
+console.log('Loading ' + directory);
 let signature;
 let repositoryObj;
 let changedFiles;
