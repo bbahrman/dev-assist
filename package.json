@@ -1,6 +1,6 @@
 {
   "name": "dev-assist",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Development assistant, clean code, lint code and manage bugs in unit testing",
   "main": "index.js",
   "scripts": {
