@@ -9,8 +9,7 @@ let branchName;
 let lintResultsGlobal;
 let formattedResults = [];
 
-let exports = {};
-exports.commit = nodegit.Repository.open(directory).then((repo) => {
+module.exports = nodegit.Repository.open(directory).then((repo) => {
     repositoryObj = repo;
     let changedFileCount = genChangedFiles(repositoryObj);
     changedFileCount.then((count) => {
