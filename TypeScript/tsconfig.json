@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es5",
+    "moduleResolution":"node",
+    "sourceMap": false,
+    "experimentalDecorators": true,
+    "noImplicitUseStrict": true,
+    "baseUrl": "../",
+    "strictNullChecks": false,
+    "rootDir": ".",
+    "outDir": "../JavaScript/",
+    "lib": ["es5", "es6", "dom", "ES2017"]
+  },
+  "exclude": ["node_modules"]
+}

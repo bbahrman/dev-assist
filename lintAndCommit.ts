@@ -41,7 +41,8 @@ class devAssist {
           this.signature = NodeGit.Signature.default(repo);
           Promise.all([
             this.listChangedFiles(),
-            this.getBranchName()
+            this.getBranchName(),
+            this.getParentCommit()
           ])
             .then(()=>{resolve()})
             .catch((err)=>{reject('Error in changed file check or branch name check ' + err)});
@@ -264,6 +265,19 @@ class devAssist {
             reject('Error while getting status of changed files ' + err);
           });
       }
+    });
+  }
+
+  private getParentCommit() {
+    return new Promise((resolve, reject) => {
+      Repository.getHeadCommit()
+        .then((commit)=>{
+          this.headCommit = commit;
+          resolve();
+        })
+        .catch((err)=>{
+          reject(err);
+        });
     });
   }
 
