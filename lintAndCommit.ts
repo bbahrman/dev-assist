@@ -19,7 +19,10 @@ class devAssist {
   private signature: NodeGit.Signature;
   private headCommit: NodeGit.Commit;
   private changedFiles: string[];
+  private splitChangedFiles: {ts:string[],js:string[]};
   private branchName: string;
+  private lintResults: lib.lintResult[];
+
 
   constructor(directory: string = './') {
     this.initialized = status.false;
@@ -109,9 +112,34 @@ class devAssist {
 
   lint(): Promise<lib.lintResult[]> {
     return new Promise((resolve, reject) => {
+      try {
 
+
+
+        let cli = new CLIEngine({
+          useEslintrc: true, fix: true
+        });
+
+        let report = cli.executeOnFiles(this.splitChangedFiles.js);
+
+        report.results.forEach((fileResponse, index, map) => {
+          this.lintResults.push(this.responseFormat(fileResponse));
+
+          if((report.results.length - 1) === index) {
+            let lastFile = this.writeFile(fileResponse.filePath, fileResponse.output);
+            lastFile.then(()=>{
+              resolve();
+            });
+          } else {
+            this.writeFile(fileResponse.filePath, fileResponse.output);
+          }
+        });
+      } catch (err) {
+        reject('Error lintFilesSimple: ' + err);
+      }
     });
   }
+
 
   lintReport(): string {
     return
@@ -201,6 +229,7 @@ class devAssist {
 
   private listChangedFiles() {
     return new Promise((resolve, reject)=>{
+      let splitFiles = {};
       if (this.repositoryObj === null) {
         reject('Repository not initialized, run initialize before proceeding');
       } else {
@@ -212,9 +241,15 @@ class devAssist {
               if(statuses.length > 0) {
                 statuses.forEach((file, index) => {
                   if (Repository.isChanged(file)) {
-                    this.changedFiles.push(this.directoryPath + '/' + file.path());
+                    let path:string = file.path();
+                    this.changedFiles.push(this.directoryPath + '/' + path);
+                    splitFiles[path.substr(path.length-2,2)].push(this.directoryPath + '/' + path);
                   }
                   if (index === (statuses.length - 1)) {
+                    this.splitChangedFiles.ts = splitFiles['ts'];
+                    this.splitChangedFiles.js = splitFiles['js'].filter((filePath)=>{
+                      return splitFiles['ts'].indexOf(filePath.replace('js','ts')) === -1;
+                    });
                     resolve();
                   }
                 });
@@ -247,6 +282,30 @@ class devAssist {
         reject('Error getBranchName: ' + err);
       }
     });
+  }
+
+  private responseFormatJS (fileResult) {
+    let result:lib.lintResult = {
+      file: fileResult.filePath.replace(this.directoryPath + '/', ''),
+      errors: fileResult.errorCount,
+      warnings: fileResult.warningCount,
+      exceptions: []
+    };
+
+    if (fileResult.messages.length > 0) {
+      for (let i = 0; i < fileResult.messages.length; i++) {
+        let message = fileResult.messages[i];
+        let exception: lib.lintException = {
+          line: message.line,
+          column: message.column,
+          rule: message.message,
+          excerpt: null
+        };
+        result.exceptions.push(exception);
+      }
+    }
+
+    return result;
   }
 }
 
@@ -381,31 +440,6 @@ function createSignature () {
 
 */
 function lintFilesSimple () {
-    return new Promise((lintFiles_resolve, lintFiles_reject) => {
-        try {
-            let CLIEngine = require("eslint").CLIEngine;
-
-            let cli = new CLIEngine({
-                useEslintrc: true, fix: true
-            });
-            // lint myfile.js and all files in lib/
-            let report = cli.executeOnFiles(changedFiles);
-            lintResultsGlobal = report;
-            report.results.forEach((fileResponse, index, map) => {
-                formattedResults.push(responseFormat(fileResponse));
-                if((report.results.length - 1) === index) {
-                    let lastFile = writeFile(fileResponse.filePath, fileResponse.output);
-                    lastFile.then(()=>{
-                        lintFiles_resolve();
-                    });
-                } else {
-                    writeFile(fileResponse.filePath, fileResponse.output);
-                }
-            });
-        } catch (err) {
-            lintFiles_reject('Error lintFilesSimple: ' + err);
-        }
-    });
 }
 /*
 
@@ -418,22 +452,5 @@ function log (message) {
     }
 }
 
-
-/*
-function responseFormat (fileResult) {
-    let value = "";
-    value += fileResult.filePath.replace(directory + '/','');
-    value += '\n';
-    value += 'Errors: ' + fileResult.errorCount + ' Warnings: ' + fileResult.warningCount;
-    value += '\n';
-    if(fileResult.messages.length > 0) {
-        for(let i = 0; i < fileResult.messages.length; i++) {
-            let message = fileResult.messages[i];
-            value += message.line + ':' + message.column + ' - ' + message.message + '\n';
-        }
-    }
-    value += '\n';
-    return value;
-}*/
 
 module.exports = devAssist;
