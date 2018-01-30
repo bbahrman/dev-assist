@@ -23,12 +23,14 @@ class devAssist {
   private branchName: string;
   private lintResults: lib.lintResult[];
 
-
+  // simple constructor, most of the heavy lifting is done by initialize
   constructor(directory: string = './') {
     this.initialized = status.false;
     this.directoryPath = directory;
   }
 
+  // required for further functionality
+  //  in a non-constructor function to allow for async
   initialize() {
     this.initialized = status.pending;
     return new Promise((resolve, reject) => {
@@ -38,11 +40,11 @@ class devAssist {
       repoPromise
         .then((repo) => {
           this.repositoryObj = repo;
-          this.signature = NodeGit.Signature.default(repo);
           Promise.all([
             this.listChangedFiles(),
             this.getBranchName(),
-            this.getParentCommit()
+            this.getParentCommit(),
+            this.getSignature()
           ])
             .then(()=>{resolve()})
             .catch((err)=>{reject('Error in changed file check or branch name check ' + err)});
@@ -320,6 +322,18 @@ class devAssist {
     }
 
     return result;
+  }
+
+  private getSignature () {
+    return new Promise((resolve, reject)=>{
+      try {
+        const signature = NodeGit.Signature.default(repo);
+        this.signature = signature;
+        resolve(signature);
+      } catch (err) {
+        reject(err);
+      }
+    });
   }
 }
 
