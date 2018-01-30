@@ -5,6 +5,7 @@ import * as ReadLine from 'readline';
 let logSetting = false;
 import * as lib from '../index'
 import {RemoteCallbacks} from "nodegit";
+import { CLIEngine } from "eslint"
 
 enum status {
   'false',
@@ -69,8 +70,8 @@ class devAssist {
               // merge remote branch in
               return this.repositoryObj.mergeBranches(this.branchName, 'origin/' + this.branchName, this.signature, NodeGit.Merge.PREFERENCE.NONE);
             }).catch((err) => {
-              log('Error in promise block commit, branchname, fetch');
-              log(err);
+              devAssist.log('Error in promise block commit, branchname, fetch');
+              devAssist.log(err);
             });
 
             let masterMergePromise = mergePromise.then(() => {
@@ -118,7 +119,7 @@ class devAssist {
         let report = cli.executeOnFiles(this.splitChangedFiles.js);
 
         report.results.forEach((fileResponse, index, map) => {
-          this.lintResults.push(this.responseFormat(fileResponse));
+          this.lintResults.push(this.responseFormatJS(fileResponse));
 
           if((report.results.length - 1) === index) {
             let lastFile = this.writeFile(fileResponse.filePath, fileResponse.output);
@@ -168,7 +169,7 @@ class devAssist {
     return this.repositoryObj.fetch("origin", options);
   }
 
-  private generateCommitOId () {
+  private generateCommitOId () : Promise<NodeGit.Oid> {
     return new Promise((resolve,reject) => {
       let updateIndexPromise = this.repositoryObj.refreshIndex();
       updateIndexPromise
@@ -206,7 +207,7 @@ class devAssist {
     });
   }
 
-  private writeFile (path, content) : Promise {
+  private writeFile (path:string, content:string) : Promise<boolean> {
     return new Promise((resolve, reject) => {
       if (!devAssist.isEmptyOrNull(content)) {
         FS.writeFile(path, content, (err) => {
@@ -235,7 +236,7 @@ class devAssist {
             try {
               if(statuses.length > 0) {
                 statuses.forEach((file, index) => {
-                  if (Repository.isChanged(file)) {
+                  if (devAssist.isChanged(file)) {
                     let path:string = file.path();
                     this.changedFiles.push(this.directoryPath + '/' + path);
                     splitFiles[path.substr(path.length-2,2)].push(this.directoryPath + '/' + path);
@@ -264,7 +265,7 @@ class devAssist {
 
   private getParentCommit() {
     return new Promise((resolve, reject) => {
-      Repository.getHeadCommit()
+      this.repositoryObj.getHeadCommit()
         .then((commit)=>{
           this.headCommit = commit;
           resolve();
@@ -319,13 +320,23 @@ class devAssist {
   private getSignature () {
     return new Promise((resolve, reject)=>{
       try {
-        const signature = NodeGit.Signature.default(repo);
+        const signature = NodeGit.Signature.default(this.repositoryObj);
         this.signature = signature;
         resolve(signature);
       } catch (err) {
         reject(err);
       }
     });
+  }
+
+  private static log (message) {
+    if(logSetting) {
+      console.log(message);
+    }
+  }
+
+  private static isChanged (fileObj) {
+    return (fileObj.isNew() || fileObj.isModified() || fileObj.isTypechange() || fileObj.isRenamed());
   }
 }
 
