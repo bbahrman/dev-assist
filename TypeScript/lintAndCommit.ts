@@ -2,7 +2,7 @@
 import * as NodeGit from 'nodegit';
 import * as FS from 'fs';
 import * as ReadLine from 'readline';
-let logSetting = false;
+let logSetting = true;
 import * as lib from '../index'
 import {RemoteCallbacks} from "nodegit";
 import { CLIEngine } from "eslint"
@@ -13,6 +13,15 @@ enum status {
   'true'
 }
 
+class splitLintResults {
+  js: string[];
+  ts: string[];
+  constructor () {
+    this.js = [];
+    this.ts = [];
+  }
+}
+
 class devAssist {
   private initialized: status;
   private directoryPath: string;
@@ -20,7 +29,7 @@ class devAssist {
   private signature: NodeGit.Signature;
   private headCommit: NodeGit.Commit;
   private changedFiles: string[];
-  private splitChangedFiles: {ts:string[],js:string[]};
+  private splitChangedFiles: splitLintResults;
   private branchName: string;
   private lintResults: lib.lintResult[];
 
@@ -28,6 +37,7 @@ class devAssist {
   constructor(directory: string = './') {
     this.initialized = status.false;
     this.directoryPath = directory;
+    this.changedFiles = [];
   }
 
   // required for further functionality
@@ -225,7 +235,8 @@ class devAssist {
 
   private listChangedFiles() {
     return new Promise((resolve, reject)=>{
-      let splitFiles = {};
+      let ts = [];
+      let js = [];
       if (this.repositoryObj === null) {
         reject('Repository not initialized, run initialize before proceeding');
       } else {
@@ -237,15 +248,26 @@ class devAssist {
               if(statuses.length > 0) {
                 statuses.forEach((file, index) => {
                   if (devAssist.isChanged(file)) {
+                    devAssist.log('Is changed');
                     let path:string = file.path();
+                    devAssist.log('File path = ' + path);
                     this.changedFiles.push(this.directoryPath + '/' + path);
-                    splitFiles[path.substr(path.length-2,2)].push(this.directoryPath + '/' + path);
+                    devAssist.log('Pushed to main changed file list');
+                    if(path.substr(path.length-2,2) === 'js') {
+                      js.push(this.directoryPath + '/' + path);
+                    } else if (path.substr(path.length-2,2) === 'ts') {
+                      ts.push(this.directoryPath + '/' + path);
+                    }
+                    devAssist.log('Pushed to split file list');
                   }
                   if (index === (statuses.length - 1)) {
-                    this.splitChangedFiles.ts = splitFiles['ts'];
-                    this.splitChangedFiles.js = splitFiles['js'].filter((filePath)=>{
+                    let splitFiles = new splitLintResults();
+                    devAssist.log('Final filter');
+                    splitFiles.ts = splitFiles['ts'];
+                    splitFiles.js = splitFiles['js'].filter((filePath)=>{
                       return splitFiles['ts'].indexOf(filePath.replace('js','ts')) === -1;
                     });
+                    this.splitChangedFiles = splitFiles;
                     resolve();
                   }
                 });
