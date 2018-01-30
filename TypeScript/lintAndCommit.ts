@@ -3,7 +3,7 @@ import * as NodeGit from 'nodegit';
 import * as FS from 'fs';
 import * as ReadLine from 'readline';
 let logSetting = false;
-import * as lib from './index'
+import * as lib from '../index'
 import {RemoteCallbacks} from "nodegit";
 
 enum status {
@@ -116,9 +116,6 @@ class devAssist {
   lint(): Promise<lib.lintResult[]> {
     return new Promise((resolve, reject) => {
       try {
-
-
-
         let cli = new CLIEngine({
           useEslintrc: true, fix: true
         });
@@ -337,5 +334,29 @@ class devAssist {
   }
 }
 
+const devObj = new devAssist('./');
+const initializePromise =  devObj.initialize();
+const lintPromise = initializePromise
+  .then(()=>{
+    return devObj.lint();
+  })
+  .catch((err)=>{
+    throw 'Error in initialize ' + err;
+  });
 
+const commitPromise = lintPromise
+  .then(()=>{
+    return devObj.commit('test commit tslint');
+  })
+  .catch((err)=>{
+    throw 'Error in lint ' + err;
+  });
+
+commitPromise
+  .then(()=>{
+    console.log('Commit complete')
+  })
+  .catch((err)=>{
+    throw 'Error in commit ' + err;
+  });
 module.exports = devAssist;
