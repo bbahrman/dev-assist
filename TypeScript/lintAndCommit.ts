@@ -52,11 +52,6 @@ class devAssist {
         .catch((err) => {
           reject('Error in repository initialization ' + err);
         });
-      changedFilePromise
-        .then(()=>{
-          this.initialized = status.true;
-          resolve();
-        });
     });
   }
 
