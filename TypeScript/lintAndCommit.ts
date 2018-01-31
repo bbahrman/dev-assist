@@ -4,7 +4,6 @@ import * as FS from 'fs';
 import * as ReadLine from 'readline';
 let logSetting = true;
 import * as lib from '../index'
-import {RemoteCallbacks} from "nodegit";
 import { CLIEngine } from "eslint"
 
 enum status {
@@ -38,6 +37,7 @@ class devAssist {
     this.initialized = status.false;
     this.directoryPath = directory;
     this.changedFiles = [];
+    this.lintResults = [];
   }
 
   // required for further functionality
@@ -57,7 +57,10 @@ class devAssist {
             this.getParentCommit(),
             this.getSignature()
           ])
-            .then(()=>{resolve()})
+            .then(()=>{
+              this.initialized = status.true;
+              resolve();
+            })
             .catch((err)=>{reject('Error in changed file check or branch name check ' + err)});
         })
         .catch((err) => {
@@ -68,15 +71,19 @@ class devAssist {
 
   // commit changed files
   commit(message: string): Promise<string> {
+    devAssist.log('in commit creation, this.initialized: ' + this.initialized);
     if (this.initialized === status.true) {
       return new Promise((resolve, reject) => {
+        devAssist.log('in promise');
         let oidPromise = this.generateCommitOId();
         oidPromise
           .then((oid) => {
+            devAssist.log('Oid resolved = ' + oid);
             // commit changes, last three arguments are OID, commit message, and parent commit
             let commit = this.repositoryObj.createCommit('HEAD', this.signature, this.signature, this.branchName + ' - ' + message, oid, [this.headCommit]);
-
+            devAssist.log('Commit promise created');
             let mergePromise = commit.then(() => {
+              devAssist.log('Commit promise resolved');
               // merge remote branch in
               return this.repositoryObj.mergeBranches(this.branchName, 'origin/' + this.branchName, this.signature, NodeGit.Merge.PREFERENCE.NONE);
             }).catch((err) => {
@@ -85,27 +92,37 @@ class devAssist {
             });
 
             let masterMergePromise = mergePromise.then(() => {
+              devAssist.log('Merge promise resolved');
               return this.repositoryObj.mergeBranches(this.branchName, 'origin/master', this.signature, NodeGit.Merge.PREFERENCE.NONE);
             });
 
             let remotePromise = masterMergePromise.then(() => {
+              devAssist.log('Master merge resolved');
               return this.repositoryObj.getRemote('origin');
             });
 
             let pushPromise = remotePromise.then((remote:NodeGit.Remote) => {
-              let callbacks:RemoteCallbacks = new NodeGit.RemoteCallbacks;
+              devAssist.log('Remote resolved');
+
+              let callbacks = new NodeGit.RemoteCallbacks;
               callbacks.credentials = (url, userName) => {
                   return NodeGit.Cred.sshKeyFromAgent(userName);
-                };
+              };
+
               let pushOptions:NodeGit.PushOptions = {
                 callbacks: callbacks
               };
               return remote.push(["refs/heads/master:refs/heads/master"], pushOptions);
             });
 
-            pushPromise.then(() => {
-              resolve();
-            });
+            pushPromise
+              .then(() => {
+                devAssist.log('Push promise resolved');
+                resolve();
+              })
+              .catch((err)=>{
+                reject(err);
+              });
           }).catch((error) => {
             reject('Error encountered while generating commit ' + error);
         });
@@ -122,16 +139,21 @@ class devAssist {
   lint(): Promise<lib.lintResult[]> {
     return new Promise((resolve, reject) => {
       try {
+        devAssist.log('Entering lint');
         let cli = new CLIEngine({
           useEslintrc: true, fix: true
         });
-
-        let report = cli.executeOnFiles(this.splitChangedFiles.js);
-
+        devAssist.log('CLI engine created');
+        devAssist.log('changed files = ' + this.splitChangedFiles.js.join(','));
+        let report = cli.executeOnFiles([this.directoryPath + 'test.js']);
+        devAssist.log('Executing on files');
+        devAssist.log('report.results length = ' + report.results.length);
         report.results.forEach((fileResponse, index, map) => {
+          devAssist.log('Results ' + index + ' results length = ' + report.results.length);
           this.lintResults.push(this.responseFormatJS(fileResponse));
 
           if((report.results.length - 1) === index) {
+            devAssist.log('Last file in lint');
             let lastFile = this.writeFile(fileResponse.filePath, fileResponse.output);
             lastFile.then(()=>{
               resolve();
@@ -351,7 +373,7 @@ class devAssist {
     });
   }
 
-  private static log (message) {
+  static log (message) {
     if(logSetting) {
       console.log(message);
     }
@@ -363,9 +385,12 @@ class devAssist {
 }
 
 const devObj = new devAssist('./');
+devAssist.log('Dev assist created');
 const initializePromise =  devObj.initialize();
+devAssist.log('Initialized');
 const lintPromise = initializePromise
   .then(()=>{
+    devAssist.log('calling lint');
     return devObj.lint();
   })
   .catch((err)=>{
@@ -374,6 +399,7 @@ const lintPromise = initializePromise
 
 const commitPromise = lintPromise
   .then(()=>{
+    devAssist.log('Commit being created');
     return devObj.commit('test commit tslint');
   })
   .catch((err)=>{
@@ -382,6 +408,7 @@ const commitPromise = lintPromise
 
 commitPromise
   .then(()=>{
+    devAssist.log('complete');
     console.log('Commit complete')
   })
   .catch((err)=>{
