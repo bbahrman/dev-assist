@@ -24,9 +24,11 @@
   },
   "homepage": "https://github.com/bbahrman/dev-assist#readme",
   "dependencies": {
+    "@types/jasmine-node": "^1.14.32",
     "@types/node": "^9.3.0",
     "@types/nodegit": "^0.18.5",
     "eslint": "^4.15.0",
+    "jasmine": "^2.9.0",
     "nodegit": "^0.20.3"
   },
   "devDependencies": {

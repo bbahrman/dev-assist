@@ -1,9 +1,10 @@
 #! /usr/local/bin/node
+/// <reference path="../index.d.ts" />
+
 import * as NodeGit from 'nodegit';
 import * as FS from 'fs';
 import * as ReadLine from 'readline';
 let logSetting = true;
-import * as lib from '../index'
 import { CLIEngine } from "eslint"
 
 enum status {
@@ -21,23 +22,25 @@ class splitLintResults {
   }
 }
 
-class devAssist {
-  private initialized: status;
-  private directoryPath: string;
-  private repositoryObj: NodeGit.Repository;
-  private signature: NodeGit.Signature;
-  private headCommit: NodeGit.Commit;
-  private changedFiles: string[];
-  private splitChangedFiles: splitLintResults;
-  private branchName: string;
-  private lintResults: lib.lintResult[];
+class DevAssist {
+  initialized: status;
+  directoryPath: string;
+  repositoryObj: NodeGit.Repository;
+  signature: NodeGit.Signature;
+  headCommit: NodeGit.Commit;
+  changedFiles: string[];
+  splitChangedFiles: splitLintResults;
+  branchName: string;
+  lintResults: LintResult[];
 
   // simple constructor, most of the heavy lifting is done by initialize
-  constructor(directory: string = './') {
+  constructor(directory: string, marker:string) {
+    DevAssist.log('in constructor, marker = ' + marker);
     this.initialized = status.false;
     this.directoryPath = directory;
     this.changedFiles = [];
     this.lintResults = [];
+    DevAssist.log('directory = ' + directory)
   }
 
   // required for further functionality
@@ -71,38 +74,38 @@ class devAssist {
 
   // commit changed files
   commit(message: string): Promise<string> {
-    devAssist.log('in commit creation, this.initialized: ' + this.initialized);
+    DevAssist.log('in commit creation, this.initialized: ' + this.initialized);
     if (this.initialized === status.true) {
       return new Promise((resolve, reject) => {
-        devAssist.log('in promise');
+        DevAssist.log('in promise');
         let oidPromise = this.generateCommitOId();
         oidPromise
           .then((oid) => {
-            devAssist.log('Oid resolved = ' + oid);
+            DevAssist.log('Oid resolved = ' + oid);
             // commit changes, last three arguments are OID, commit message, and parent commit
             let commit = this.repositoryObj.createCommit('HEAD', this.signature, this.signature, this.branchName + ' - ' + message, oid, [this.headCommit]);
-            devAssist.log('Commit promise created');
+            DevAssist.log('Commit promise created');
             let mergePromise = commit.then(() => {
-              devAssist.log('Commit promise resolved');
+              DevAssist.log('Commit promise resolved');
               // merge remote branch in
               return this.repositoryObj.mergeBranches(this.branchName, 'origin/' + this.branchName, this.signature, NodeGit.Merge.PREFERENCE.NONE);
             }).catch((err) => {
-              devAssist.log('Error in promise block commit, branchname, fetch');
-              devAssist.log(err);
+              DevAssist.log('Error in promise block commit, branchname, fetch');
+              DevAssist.log(err);
             });
 
             let masterMergePromise = mergePromise.then(() => {
-              devAssist.log('Merge promise resolved');
+              DevAssist.log('Merge promise resolved');
               return this.repositoryObj.mergeBranches(this.branchName, 'origin/master', this.signature, NodeGit.Merge.PREFERENCE.NONE);
             });
 
             let remotePromise = masterMergePromise.then(() => {
-              devAssist.log('Master merge resolved');
+              DevAssist.log('Master merge resolved');
               return this.repositoryObj.getRemote('origin');
             });
 
             let pushPromise = remotePromise.then((remote:NodeGit.Remote) => {
-              devAssist.log('Remote resolved');
+              DevAssist.log('Remote resolved');
 
               let callbacks = new NodeGit.RemoteCallbacks;
               callbacks.credentials = (url, userName) => {
@@ -117,7 +120,7 @@ class devAssist {
 
             pushPromise
               .then(() => {
-                devAssist.log('Push promise resolved');
+                DevAssist.log('Push promise resolved');
                 resolve();
               })
               .catch((err)=>{
@@ -129,31 +132,31 @@ class devAssist {
       });
     } else {
       if (this.initialized === status.pending) {
-        throw new Error('Respository has not been fully initialized, initialization is in progress, use the promise returned from devAssist.intialize');
+        throw new Error('Respository has not been fully initialized, initialization is in progress, use the promise returned from DevAssist.intialize');
       } else if (this.initialized === status.false) {
-        throw new Error('Repository has not been initialized, call devAssist.initialize');
+        throw new Error('Repository has not been initialized, call DevAssist.initialize');
       }
     }
   }
 
-  lint(): Promise<lib.lintResult[]> {
+  lint(): Promise<LintResult[]> {
     return new Promise((resolve, reject) => {
       try {
-        devAssist.log('Entering lint');
+        DevAssist.log('Entering lint');
         let cli = new CLIEngine({
           useEslintrc: true, fix: true
         });
-        devAssist.log('CLI engine created');
-        devAssist.log('changed files = ' + this.splitChangedFiles.js.join(','));
+        DevAssist.log('CLI engine created');
+        DevAssist.log('changed files = ' + this.splitChangedFiles.js.join(','));
         let report = cli.executeOnFiles([this.directoryPath + 'test.js']);
-        devAssist.log('Executing on files');
-        devAssist.log('report.results length = ' + report.results.length);
+        DevAssist.log('Executing on files');
+        DevAssist.log('report.results length = ' + report.results.length);
         report.results.forEach((fileResponse, index, map) => {
-          devAssist.log('Results ' + index + ' results length = ' + report.results.length);
+          DevAssist.log('Results ' + index + ' results length = ' + report.results.length);
           this.lintResults.push(this.responseFormatJS(fileResponse));
 
           if((report.results.length - 1) === index) {
-            devAssist.log('Last file in lint');
+            DevAssist.log('Last file in lint');
             let lastFile = this.writeFile(fileResponse.filePath, fileResponse.output);
             lastFile.then(()=>{
               resolve();
@@ -179,7 +182,7 @@ class devAssist {
     });
   }
 
-  logBug(bug: lib.bug): Promise<number> {
+  logBug(bug: Bug): Promise<number> {
     return new Promise((resolve, reject) => {
 
     });
@@ -241,7 +244,7 @@ class devAssist {
 
   private writeFile (path:string, content:string) : Promise<boolean> {
     return new Promise((resolve, reject) => {
-      if (!devAssist.isEmptyOrNull(content)) {
+      if (!DevAssist.isEmptyOrNull(content)) {
         FS.writeFile(path, content, (err) => {
           if (err) {
             reject(err);
@@ -269,22 +272,22 @@ class devAssist {
             try {
               if(statuses.length > 0) {
                 statuses.forEach((file, index) => {
-                  if (devAssist.isChanged(file)) {
-                    devAssist.log('Is changed');
+                  if (DevAssist.isChanged(file)) {
+                    DevAssist.log('Is changed');
                     let path:string = file.path();
-                    devAssist.log('File path = ' + path);
+                    DevAssist.log('File path = ' + path);
                     this.changedFiles.push(this.directoryPath + '/' + path);
-                    devAssist.log('Pushed to main changed file list');
+                    DevAssist.log('Pushed to main changed file list');
                     if(path.substr(path.length-2,2) === 'js') {
                       js.push(this.directoryPath + '/' + path);
                     } else if (path.substr(path.length-2,2) === 'ts') {
                       ts.push(this.directoryPath + '/' + path);
                     }
-                    devAssist.log('Pushed to split file list');
+                    DevAssist.log('Pushed to split file list');
                   }
                   if (index === (statuses.length - 1)) {
                     let splitFiles = new splitLintResults();
-                    devAssist.log('Final filter');
+                    DevAssist.log('Final filter');
                     splitFiles.ts = splitFiles['ts'];
                     splitFiles.js = splitFiles['js'].filter((filePath)=>{
                       return splitFiles['ts'].indexOf(filePath.replace('js','ts')) === -1;
@@ -338,7 +341,7 @@ class devAssist {
   }
 
   private responseFormatJS (fileResult) {
-    let result:lib.lintResult = {
+    let result:LintResult = {
       file: fileResult.filePath.replace(this.directoryPath + '/', ''),
       errors: fileResult.errorCount,
       warnings: fileResult.warningCount,
@@ -348,7 +351,7 @@ class devAssist {
     if (fileResult.messages.length > 0) {
       for (let i = 0; i < fileResult.messages.length; i++) {
         let message = fileResult.messages[i];
-        let exception: lib.lintException = {
+        let exception: LintException = {
           line: message.line,
           column: message.column,
           rule: message.message,
@@ -384,13 +387,13 @@ class devAssist {
   }
 }
 
-const devObj = new devAssist('./');
-devAssist.log('Dev assist created');
+/*const devObj = new DevAssist('./');
+DevAssist.log('Dev assist created');
 const initializePromise =  devObj.initialize();
-devAssist.log('Initialized');
+DevAssist.log('Initialized');
 const lintPromise = initializePromise
   .then(()=>{
-    devAssist.log('calling lint');
+    DevAssist.log('calling lint');
     return devObj.lint();
   })
   .catch((err)=>{
@@ -399,7 +402,7 @@ const lintPromise = initializePromise
 
 const commitPromise = lintPromise
   .then(()=>{
-    devAssist.log('Commit being created');
+    DevAssist.log('Commit being created');
     return devObj.commit('test commit tslint');
   })
   .catch((err)=>{
@@ -408,10 +411,10 @@ const commitPromise = lintPromise
 
 commitPromise
   .then(()=>{
-    devAssist.log('complete');
+    DevAssist.log('complete');
     console.log('Commit complete')
   })
   .catch((err)=>{
     throw 'Error in commit ' + err;
   });
-module.exports = devAssist;
+module.exports = DevAssist;*/
