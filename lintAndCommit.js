@@ -168,7 +168,7 @@ function lintFilesSimple () {
             let cli = new CLIEngine({
                 useEslintrc: true, fix: true
             });
-            // lint myfile.js and all files in lib/
+            // lint myfile.js and all files in src/
             let report = cli.executeOnFiles(changedFiles);
             lintResultsGlobal = report;
             report.results.forEach((fileResponse, index, map) => {
