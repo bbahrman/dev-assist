@@ -4,7 +4,8 @@
   "description": "Development assistant, clean code, lint code and manage bugs in unit testing",
   "main": "index.js",
   "scripts": {
-    "test": "test"
+    "build": "tsc",
+    "test": "mocha --reporter spec"
   },
   "repository": {
     "type": "git",
@@ -26,5 +27,9 @@
   "dependencies": {
     "eslint": "^4.15.0",
     "nodegit": "^0.20.3"
+  },
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "mocha": "^5.0.0"
   }
 }
