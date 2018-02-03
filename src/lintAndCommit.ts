@@ -79,7 +79,7 @@ export class DevAssist {
           ])
             .then(()=>{
               this.initialized = status.true;
-              resolve();
+              resolve(true);
             })
             .catch((err)=>{reject('Error in changed file check or branch name check ' + err)});
         })

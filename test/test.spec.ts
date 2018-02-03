@@ -1,7 +1,11 @@
 'use strict';
-import { expect } from 'chai';
+import * as chai from 'chai';
+import * as chaiAsPromised from 'chai-as-promised';
 import {DevAssist, status} from '../src/index'
 const dirPath:string = './';
+let devAssistObject: DevAssist;
+const expect = chai.expect;
+chai.use(chaiAsPromised);
 
 describe("basic test", () => {
    it("1 should equal 1", ()=> {
@@ -9,8 +13,13 @@ describe("basic test", () => {
     });
 });
 
+
+beforeEach("create new object before each test", (done) => {
+  devAssistObject = new DevAssist(dirPath);
+  done();
+});
+
 describe("New object", () => {
-  const devAssistObject = new DevAssist(dirPath);
   it("constructor should create a new object", () => {
     expect(devAssistObject).to.be.an("object");
   });
@@ -23,3 +32,15 @@ describe("New object", () => {
   });
 });
 
+describe("initialize", () => {
+  let initializationPromise:Promise<boolean>;
+  beforeEach("initialize object", ()=>{
+    initializationPromise = devAssistObject.initialize();
+  });
+  it("should be pending initialization", ()=>{
+    expect(devAssistObject.initialized).to.equal(status.pending);
+  });
+  it("should resolve", ()=>{
+    expect(initializationPromise).to.eventually.equal(true);
+  })
+});
