@@ -42,5 +42,11 @@ describe("initialize", () => {
   });
   it("should resolve", ()=>{
     expect(initializationPromise).to.eventually.equal(true);
-  })
+  });
+  it("should set initialized to true", ()=>{
+    initializationPromise
+      .then(()=>{
+        expect(devAssistObject.initialized).to.equal(status.true);
+      });
+  });
 });
