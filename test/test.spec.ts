@@ -2,7 +2,7 @@
 import * as chai from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
 import {DevAssist, status} from '../src/index'
-const dirPath:string = './';
+const dirPath:string = './test/testDir';
 let devAssistObject: DevAssist;
 const expect = chai.expect;
 chai.use(chaiAsPromised);
@@ -48,5 +48,33 @@ describe("initialize", () => {
       .then(()=>{
         expect(devAssistObject.initialized).to.equal(status.true);
       });
+  });
+});
+
+describe("initialize sub functions", ()=> {
+  before("initialize object and wait", (done)=>{
+    const initializationPromise = devAssistObject.initialize();
+    initializationPromise
+      .then((result)=>{
+        done();
+      })
+      .catch((err) => {
+        throw err;
+      })
+  });
+
+  describe("listChangedFiles", ()=>{
+    it("changed files not empty", ()=>{
+      expect(devAssistObject.changedFiles).to.not.be.empty;
+    });
+  });
+  describe("getBranchName", ()=>{
+
+  });
+  describe("getParentCommit", ()=>{
+
+  });
+  describe("getSignature", ()=>{
+
   });
 });

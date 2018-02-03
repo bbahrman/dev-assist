@@ -65,28 +65,40 @@ export class DevAssist {
   initialize() {
     this.initialized = status.pending;
     return new Promise((resolve, reject) => {
-      // initialize repository object, opens the repo in the given directory
-      let repoPromise = Repository.open(this.directoryPath);
+      let repoPromise = this.initializeRepo();
 
       repoPromise
-        .then((repo) => {
-          this.repositoryObj = repo;
+        .then(() => {
           Promise.all([
             this.listChangedFiles(),
             this.getBranchName(),
             this.getParentCommit(),
             this.getSignature()
           ])
-            .then(()=>{
-              this.initialized = status.true;
-              resolve(true);
-            })
-            .catch((err)=>{reject('Error in changed file check or branch name check ' + err)});
+          .then(()=>{
+            this.initialized = status.true;
+            resolve(true);
+          })
+          .catch((err)=>{reject('Error in changed file check or branch name check ' + err)});
         })
         .catch((err) => {
           reject('Error in repository initialization ' + err);
         });
       });
+  }
+  initializeRepo(): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      // initialize repository object, opens the repo in the given directory
+      let repoPromise = Repository.open(this.directoryPath);
+      repoPromise
+        .then((repo)=>{
+          this.repositoryObj = repo;
+          resolve(true);
+        })
+        .catch((err)=>{
+          reject(err)
+        });
+    });
   }
   listChangedFiles() {
     return new Promise((resolve, reject)=>{
