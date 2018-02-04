@@ -152,7 +152,7 @@ export class DevAssist {
       this.repositoryObj.getHeadCommit()
         .then((commit)=>{
           this.headCommit = commit;
-          resolve();
+          resolve(true);
         })
         .catch((err)=>{
           reject(err);
@@ -177,7 +177,7 @@ export class DevAssist {
       try {
         const signature = Signature.default(this.repositoryObj);
         this.signature = signature;
-        resolve(signature);
+        resolve(true);
       } catch (err) {
         reject(err);
       }

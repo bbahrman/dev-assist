@@ -115,6 +115,26 @@ describe("initialize object", () => {
         });
     });
   });
+  describe("getSignature", ()=>{
+    let getSignature:Promise<boolean>;
+    beforeEach("getSignature object", ()=>{
+      getSignature = initializationPromise
+        .then(()=>{
+          return devAssistObject.getSignature();
+        });
+    });
+
+    it("should resolve", ()=>{
+      expect(getSignature).to.eventually.equal(true)
+    });
+
+    it("should return a commit", ()=>{
+      getSignature
+        .then(()=>{
+          expect(devAssistObject.signature).to.not.be.null; // todo check type
+        });
+    });
+  });
 });
 
 
