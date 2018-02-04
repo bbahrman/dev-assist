@@ -130,11 +130,11 @@ export class DevAssist {
                       return splitFiles['ts'].indexOf(filePath.replace('js','ts')) === -1;
                     });
                     this.splitChangedFiles = splitFiles;
-                    resolve();
+                    resolve(true);
                   }
                 });
               } else {
-                resolve();
+                resolve(true);
               }
             } catch (err) {
               reject('Error in iteration of statuses ' + err);
@@ -165,7 +165,7 @@ export class DevAssist {
         this.repositoryObj.getBranch('HEAD').then((reference) => {
           let refName:string = reference.name();
           this.branchName = refName.replace('refs/heads/', '');
-          resolve()
+          resolve(true)
         });
       } catch (err) {
         reject('Error getBranchName: ' + err);

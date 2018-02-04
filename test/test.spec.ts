@@ -32,7 +32,7 @@ describe("New object", () => {
   });
 });
 
-describe("initialize", () => {
+describe("initialize object", () => {
   let initializationPromise:Promise<boolean>;
   beforeEach("initialize object", ()=>{
     initializationPromise = devAssistObject.initialize();
@@ -49,32 +49,72 @@ describe("initialize", () => {
         expect(devAssistObject.initialized).to.equal(status.true);
       });
   });
-});
+  describe("list changed files", ()=>{
+    let changedFilePromise:Promise<boolean>;
+    beforeEach("list files", ()=>{
+      changedFilePromise = initializationPromise
+      .then(()=>{
+        return devAssistObject.listChangedFiles();
+      });
+    });
 
-describe("initialize sub functions", ()=> {
-  before("initialize object and wait", (done)=>{
-    const initializationPromise = devAssistObject.initialize();
-    initializationPromise
-      .then((result)=>{
-        done();
-      })
-      .catch((err) => {
-        throw err;
-      })
+    it("should resolve", ()=>{
+      expect(changedFilePromise).to.eventually.equal(true)
+    });
+
+    it("should list all changed files", ()=>{
+      changedFilePromise
+        .then(()=>{
+          expect(devAssistObject.changedFiles).to.not.be.empty; // todo initialize the file dir with preset list of files
+        });
+      });
   });
+  describe("get branch name", ()=>{
+    let branchPromise:Promise<boolean>;
+    beforeEach("list files", ()=>{
+      branchPromise = initializationPromise
+        .then(()=>{
+          return devAssistObject.getBranchName();
+        });
+    });
 
-  describe("listChangedFiles", ()=>{
-    it("changed files not empty", ()=>{
-      expect(devAssistObject.changedFiles).to.not.be.empty;
+    it("should resolve", ()=>{
+      expect(branchPromise).to.eventually.equal(true)
+    });
+
+    it("branch name should be defined", ()=>{
+      branchPromise
+        .then(()=>{
+          expect(devAssistObject.branchName).to.not.be.null;
+        });
+    });
+    it("branch name should be master", ()=>{
+      branchPromise
+        .then(()=>{
+          expect(devAssistObject.branchName).to.equal('master');
+        });
     });
   });
-  describe("getBranchName", ()=>{
-
-  });
   describe("getParentCommit", ()=>{
+    let parentCommitPromise:Promise<boolean>;
+    beforeEach("getParentCommit", ()=>{
+      parentCommitPromise = initializationPromise
+        .then(()=>{
+          return devAssistObject.getParentCommit();
+        });
+    });
 
-  });
-  describe("getSignature", ()=>{
+    it("should resolve", ()=>{
+      expect(parentCommitPromise).to.eventually.equal(true)
+    });
 
+    it("should return a commit", ()=>{
+      parentCommitPromise
+        .then(()=>{
+          expect(devAssistObject.headCommit).to.not.be.null; // todo check type
+        });
+    });
   });
 });
+
+
