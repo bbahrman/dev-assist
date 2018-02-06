@@ -37,12 +37,15 @@ describe("initialize object", () => {
   beforeEach("initialize object", ()=>{
     initializationPromise = devAssistObject.initialize();
   });
+  // check post resolution - multiple checks
   it("should be pending initialization", ()=>{
     expect(devAssistObject.initialized).to.equal(status.pending);
   });
+  // check resolution
   it("should resolve", ()=>{
     return expect(initializationPromise).to.eventually.equal(true);
   });
+  // check post resolution - multiple checks
   it("should set initialized to true", ()=>{
     return initializationPromise
       .then(()=>{
@@ -62,10 +65,12 @@ describe("initialize object", () => {
       });
     });
 
+    // check resolution
     it("should resolve", ()=>{
       expect(changedFilePromise).to.eventually.equal(true)
     });
 
+    // check value post resolution
     it("should list all changed files", ()=>{
       changedFilePromise
         .then(()=>{
@@ -73,6 +78,7 @@ describe("initialize object", () => {
         });
       });
   });
+
   describe("get branch name", ()=>{
     let branchPromise:Promise<boolean>;
     beforeEach("list files", ()=>{
@@ -82,16 +88,19 @@ describe("initialize object", () => {
         });
     });
 
+    // check resolution
     it("should resolve", ()=>{
       expect(branchPromise).to.eventually.equal(true)
     });
 
+    // check post resolution
     it("branch name should be defined", ()=>{
       branchPromise
         .then(()=>{
           expect(devAssistObject.branchName).to.not.be.null;
         });
     });
+    // check post resolution
     it("branch name should be master", ()=>{
       branchPromise
         .then(()=>{
@@ -108,10 +117,12 @@ describe("initialize object", () => {
         });
     });
 
+    // check resolution
     it("should resolve", ()=>{
       expect(parentCommitPromise).to.eventually.equal(true)
     });
 
+    // check post resolution
     it("should return a commit", ()=>{
       parentCommitPromise
         .then(()=>{
@@ -119,6 +130,7 @@ describe("initialize object", () => {
         });
     });
   });
+
   describe("getSignature", ()=>{
     let getSignature:Promise<boolean>;
     beforeEach("getSignature object", ()=>{
@@ -128,15 +140,36 @@ describe("initialize object", () => {
         });
     });
 
+    // check resolution
     it("should resolve", ()=>{
       expect(getSignature).to.eventually.equal(true)
     });
 
+    // check post resolution
     it("should return a signature", ()=>{
       getSignature
         .then(()=>{
           expect(devAssistObject.signature).to.not.be.null; // todo check type
         });
+    });
+  });
+  // check promise resolution followed by multiple checks
+  describe("getSignature", ()=>{
+    it("should resolve", ()=>{
+      return expect(initializationPromise).to.eventually.be.fulfilled;
+    });
+
+    describe("post resolution checks", ()=>{
+      before((done)=>{
+        initializationPromise
+          .then(()=>{
+            done();
+          });
+      });
+
+      it('signature', ()=>{
+        expect(devAssistObject.signature).to.not.be.null;
+      });
     });
   });
 });
