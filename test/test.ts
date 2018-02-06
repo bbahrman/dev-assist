@@ -41,20 +41,24 @@ describe("initialize object", () => {
     expect(devAssistObject.initialized).to.equal(status.pending);
   });
   it("should resolve", ()=>{
-    expect(initializationPromise).to.eventually.equal(true);
+    return expect(initializationPromise).to.eventually.equal(true);
   });
   it("should set initialized to true", ()=>{
-    initializationPromise
+    return initializationPromise
       .then(()=>{
         expect(devAssistObject.initialized).to.equal(status.true);
       });
   });
+
   describe("list changed files", ()=>{
     let changedFilePromise:Promise<boolean>;
     beforeEach("list files", ()=>{
       changedFilePromise = initializationPromise
       .then(()=>{
-        return devAssistObject.listChangedFiles();
+        devAssistObject.listChangedFiles()
+          .then(()=>{
+            done();
+          });
       });
     });
 
@@ -128,7 +132,7 @@ describe("initialize object", () => {
       expect(getSignature).to.eventually.equal(true)
     });
 
-    it("should return a commit", ()=>{
+    it("should return a signature", ()=>{
       getSignature
         .then(()=>{
           expect(devAssistObject.signature).to.not.be.null; // todo check type
